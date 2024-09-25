@@ -9,11 +9,14 @@
 #include "addons/RTDBHelper.h"
 
 // Definisikan pin yang terhubung ke sensor DS18B20
-const int sensorPin = 4; // Hubungkan sensor ke pin 4 pada ESP32
+const int sensorPin = 15; // Hubungkan sensor ke pin 4 pada ESP32
 
 // Definisikan pin trigger dan echo sensor
 const int trigPin = 27;
 const int echoPin = 26;
+
+// Define LED pin as built-in LED
+const int ledPin = LED_BUILTIN; // Built-in LED on ESP32 (typically GPIO 2)
 
 //Input nilai kalibrasi jarak
 float md = 1;
@@ -27,14 +30,14 @@ OneWire oneWire(sensorPin);
 float temperature;
 
 // Insert your network credentials
-#define WIFI_SSID "Masukan SSID"
-#define WIFI_PASSWORD "Masukan Password"
+#define WIFI_SSID "Lab_IoT"
+#define WIFI_PASSWORD "L@bi0t63"
 
 // Insert Firebase project API Key
-#define API_KEY "Masukan API key"
+#define API_KEY "AIzaSyAViPIS3Fu7MQMaULbV00_SFf0iMNfpXTE"
 
 // Insert RTDB URLefine the RTDB URL */
-#define DATABASE_URL "Masukan URL" 
+#define DATABASE_URL "https://prakiot-b9a26-default-rtdb.firebaseio.com/" 
 
 //Define Firebase Data object
 FirebaseData fbdo;
@@ -43,7 +46,6 @@ FirebaseAuth auth;
 FirebaseConfig config;
 
 unsigned long sendDataPrevMillis = 0;
-//int count = 0;
 bool signupOK = false;
 
 void setup(){
@@ -82,6 +84,8 @@ void setup(){
   
   pinMode(trigPin, OUTPUT); // Atur pin trigger sebagai OUTPUT
   pinMode(echoPin, INPUT); // Atur pin echo sebagai INPUT
+  
+  pinMode(ledPin, OUTPUT); // Atur pin LED sebagai OUTPUT
 }
 
 void loop(){
@@ -171,7 +175,7 @@ void loop(){
        Serial.println("REASON: " + fbdo.errorReason());
      }
 
-     // Write an Int number on the database path test/int (kelembapan)
+     // Write an Int number on the database path test/int (jarak)
      if (Firebase.RTDB.setInt(&fbdo, "Data/Jarak", d)){
        Serial.println("PASSED");
        Serial.println("PATH: " + fbdo.dataPath());
@@ -179,6 +183,23 @@ void loop(){
      }
      else {
        Serial.println("FAILED");
+       Serial.println("REASON: " + fbdo.errorReason());
+     }
+
+     // Read LED state from Firebase (0 for OFF, 1 for ON)
+     if (Firebase.RTDB.getInt(&fbdo, "Data/LED")){
+       int ledState = fbdo.intData();
+       if (ledState == 1){
+         digitalWrite(ledPin, HIGH); // Turn LED ON
+         Serial.println("LED ON");
+       }
+       else {
+         digitalWrite(ledPin, LOW); // Turn LED OFF
+         Serial.println("LED OFF");
+       }
+     }
+     else {
+       Serial.println("FAILED to get LED state");
        Serial.println("REASON: " + fbdo.errorReason());
      }
   }
