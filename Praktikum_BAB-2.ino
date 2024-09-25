@@ -30,14 +30,14 @@ OneWire oneWire(sensorPin);
 float temperature;
 
 // Insert your network credentials
-#define WIFI_SSID "Lab_IoT"
-#define WIFI_PASSWORD "L@bi0t63"
+#define WIFI_SSID "SSID"
+#define WIFI_PASSWORD "PASS"
 
 // Insert Firebase project API Key
-#define API_KEY "AIzaSyAViPIS3Fu7MQMaULbV00_SFf0iMNfpXTE"
+#define API_KEY "API KEY"
 
 // Insert RTDB URLefine the RTDB URL */
-#define DATABASE_URL "https://prakiot-b9a26-default-rtdb.firebaseio.com/" 
+#define DATABASE_URL "URL DATABASE" 
 
 //Define Firebase Data object
 FirebaseData fbdo;
