@@ -12,8 +12,8 @@
 const int sensorPin = 15; // Hubungkan sensor ke pin 4 pada ESP32
 
 // Definisikan pin trigger dan echo sensor
-const int trigPin = 27;
-const int echoPin = 26;
+const int trigPin = 12;
+const int echoPin = 13;
 
 // Define LED pin as built-in LED
 const int ledPin = LED_BUILTIN; // Built-in LED on ESP32 (typically GPIO 2)
@@ -186,10 +186,10 @@ void loop(){
        Serial.println("REASON: " + fbdo.errorReason());
      }
 
-     // Read LED state from Firebase (0 for OFF, 1 for ON)
-     if (Firebase.RTDB.getInt(&fbdo, "Data/LED")){
-       int ledState = fbdo.intData();
-       if (ledState == 1){
+ // Read LED state from Firebase (0 for OFF, 1 for ON)
+     if (Firebase.RTDB.getString(&fbdo, "Data/LED")){
+       String ledState = fbdo.stringData();
+       if (ledState == "1"){
          digitalWrite(ledPin, HIGH); // Turn LED ON
          Serial.println("LED ON");
        }
