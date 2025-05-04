@@ -5,30 +5,25 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-// Token & Firebase Helper
 #include "addons/TokenHelper.h"
 #include "addons/RTDBHelper.h"
 
-// **Definisi Pin Sensor**
 const int oneWireBus = 5; 
-const int trigPin = 12;   // HC-SR04 Trigger
-const int echoPin = 13;   // HC-SR04 Echo
+const int trigPin = 12;   
+const int echoPin = 13;   
 const int ledPin = 2;     
 
-// **Konstanta Kalibrasi**
-float md = 1;  // Faktor kalibrasi jarak
-float Vod = 0; // Offset jarak
+float md = 1;
+float Vod = 0;
 
 OneWire oneWire(oneWireBus);
 DallasTemperature sensors(&oneWire);
 
-// **WiFi & Firebase**
-#define WIFI_SSID "Lab_IoT"
-#define WIFI_PASSWORD "L@bi0t63"
-#define API_KEY "AIzaSyDcDUMEbFOHU04Q9oYcmR-JzCNNQAQYnRo"
-#define DATABASE_URL "https://praktiot-default-rtdb.firebaseio.com/"
+#define WIFI_SSID "SSID"
+#define WIFI_PASSWORD "PASSWORD"
+#define API_KEY "APIKEY"
+#define DATABASE_URL "URL"
 
-// **Deklarasi Firebase & Servo**
 FirebaseData fbdo;
 FirebaseAuth auth;
 FirebaseConfig config;
@@ -41,7 +36,6 @@ bool signupOK = false;
 void setup() {
     Serial.begin(115200);
 
-    // **Menghubungkan ke Wi-Fi**
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("Menghubungkan ke Wi-Fi");
     while (WiFi.status() != WL_CONNECTED) {
@@ -50,7 +44,6 @@ void setup() {
     }
     Serial.println("\nWi-Fi Terhubung!");
 
-    // **Konfigurasi Firebase**
     config.api_key = API_KEY;
     config.database_url = DATABASE_URL;
     config.token_status_callback = tokenStatusCallback;
@@ -65,7 +58,6 @@ void setup() {
     Firebase.begin(&config, &auth);
     Firebase.reconnectWiFi(true);
 
-    // **Inisialisasi Pin & Servo**
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
     pinMode(ledPin, OUTPUT);
@@ -79,7 +71,6 @@ void loop() {
     long duration;
     float jarak;
 
-    // **Mengukur Jarak dengan HC-SR04**
     digitalWrite(trigPin, LOW);
     delayMicroseconds(2);
     digitalWrite(trigPin, HIGH);
@@ -92,7 +83,6 @@ void loop() {
     Serial.print(jarak);
     Serial.println(" cm");
 
-    // **Membaca Suhu dari DS18B20**
     sensors.requestTemperatures(); 
     float suhu = sensors.getTempCByIndex(0);
 
@@ -102,51 +92,51 @@ void loop() {
 
     delay(1000);
 
-    // **Kirim Data ke Firebase Setiap 10 Detik**
     if (Firebase.ready() && signupOK && (millis() - lastMillis > 1000 || lastMillis == 0)) {
         lastMillis = millis();
 
-        if (Firebase.RTDB.setFloat(&fbdo, "Data/Suhu", suhu)) {
-            Serial.println("Suhu terkirim!");
-        } else {
-            Serial.println("Gagal mengirim suhu: " + fbdo.errorReason());
-        }
+        Firebase.RTDB.setFloat(&fbdo, "Data/Suhu", suhu);
+        Firebase.RTDB.setFloat(&fbdo, "Data/Jarak", jarak);
 
-        if (Firebase.RTDB.setFloat(&fbdo, "Data/Jarak", jarak)) {
-            Serial.println("Jarak terkirim!");
-        } else {
-            Serial.println("Gagal mengirim jarak: " + fbdo.errorReason());
-        }
-
-        // **Ambil Data LED dari Firebase**
         if (Firebase.RTDB.getString(&fbdo, "Data/LED")) {
-            String ledState = fbdo.stringData();
-            if (ledState == "ON") {
+            String ledStr = fbdo.stringData();
+            ledStr.trim();                   
+            ledStr.replace("\"", "");        
+            ledStr.replace("\\", "");        
+
+            Serial.println("Nilai LED setelah dibersihkan: " + ledStr);
+
+            if (ledStr == "1") {
                 digitalWrite(ledPin, HIGH);
                 Serial.println("LED ON");
-            } else {
+            } else if (ledStr == "0") {
                 digitalWrite(ledPin, LOW);
                 Serial.println("LED OFF");
+            } else {
+                Serial.println("Nilai LED tidak valid setelah pembersihan: " + ledStr);
             }
         } else {
-            Serial.println("Gagal membaca LED: " + fbdo.errorReason());
+           Serial.println("Gagal membaca LED: " + fbdo.errorReason());
         }
 
-        // **Ambil Data Servo dari Firebase**
-        // Ambil Data Servo dari Firebase (dalam rentang 0-255)
-        if (Firebase.RTDB.getInt(&fbdo, "Data/Servo")) {
-            int servoValue255 = fbdo.to<int>();
-            if (servoValue255 >= 0 && servoValue255 <= 255) {
-                int servoPos = map(servoValue255, 0, 255, 0, 180); // Konversi ke 0–180
+        if (Firebase.RTDB.getString(&fbdo, "Data/Servo")) {
+            String servoStr = fbdo.stringData();
+            servoStr.trim();
+            servoStr.replace("\"", "");
+            servoStr.replace("\\", "");
+            int servoVal = servoStr.toInt();
+            if (servoVal >= 0 && servoVal <= 100) {
+                int servoPos = map(servoVal, 0, 100, 0, 180);
                 myServo.write(servoPos);
-                Serial.print("Servo dari Firebase (0–255): ");
-                Serial.print(servoValue255);
+                Serial.print("Servo dari Firebase (0–100): ");
+                Serial.print(servoVal);
                 Serial.print(" | Servo (0–180): ");
                 Serial.println(servoPos);
-    }
-} else {
-    Serial.println("Gagal membaca Servo: " + fbdo.errorReason());
-}
-
+            } else {
+                Serial.println("Nilai Servo tidak valid: " + servoStr);
+            }
+        } else {
+            Serial.println("Gagal membaca Servo: " + fbdo.errorReason());
+        }
     }
 }
